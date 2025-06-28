@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OBS Web Mirror Control</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #1e1e1e;
+      color: white;
+      padding: 20px;
+    }
+    label, input, textarea, select, button {
+      display: block;
+      margin: 10px 0;
+    }
+    button {
+      padding: 10px 20px;
+      font-weight: bold;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .color-group, .font-controls, .saved-text-controls {
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #333;
+    }
+    .color-group, .font-sub-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap; /* Allow wrapping for smaller screens */
+    }
+    .color-group label, .font-sub-group label {
+      display: flex;
+      flex-direction: column;
+      font-size: 0.9em;
+    }
+    .text-input-group {
+        margin-bottom: 20px;
+        border-bottom: 1px solid #333;
+        padding-bottom: 15px;
+    }
+    .text-input-group label {
+        margin-bottom: 5px;
+    }
+    .text-input-group textarea {
+        width: 100%;
+        box-sizing: border-box; /* Ensures padding doesn't add to the width */
+        margin-bottom: 10px;
+        background: #333;
+        color: white;
+        border: 1px solid #555;
+        padding: 5px;
+    }
+    input[type="color"], input[type="number"], select {
+        background: #333;
+        border: 1px solid #555;
+        color: white;
+        padding: 3px;
+    }
+    input[type="text"] {
+        width: 100%;
+        box-sizing: border-box;
+        background: #333;
+        border: 1px solid #555;
+        color: white;
+        padding: 5px;
+    }
+    h1 {
+        color: #007bff;
+    }
+    h2 {
+        color: #eee;
+        margin-top: 0;
+    }
+    .font-category {
+        margin-top: 15px;
+        border: 1px solid #444;
+        padding: 10px;
+        border-radius: 5px;
+        background: #2a2a2a;
+    }
+    .font-category h3 {
+        margin-top: 0;
+        color: #eee;
+    }
+    .saved-text-buttons button {
+        display: inline-block;
+        width: auto;
+        margin-right: 10px;
+        padding: 8px 15px;
+        font-size: 0.9em;
+        margin-top: 5px;
+    }
+    .saved-text-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    #saveNameInput {
+        width: calc(100% - 10px); /* Adjust for padding/margin */
+        margin-bottom: 10px;
+    }
+    .style-checkbox-group {
+        display: flex;
+        flex-direction: row; /* Align checkboxes horizontally */
+        gap: 15px; /* Space between checkboxes */
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+    .style-checkbox-group label {
+        display: flex; /* Align checkbox and text horizontally */
+        align-items: center;
+        gap: 5px;
+        margin: 0; /* Override default label margin */
+    }
+    .style-checkbox-group input[type="checkbox"] {
+        width: auto; /* Allow checkbox to be its natural size */
+        margin: 0; /* Override default input margin */
+    }
+    .outline-controls {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+    }
+    .outline-controls label {
+        display: flex;
+        flex-direction: column;
+        font-size: 0.9em;
+    }
+    /* New styles for background controls */
+    .background-type-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        margin-bottom: 10px;
+    }
+    .background-type-controls label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin: 0;
+    }
+    #gradientColors, #backgroundColorSettings { /* Initially hidden, shown by JS */
+        display: none;
+        flex-direction: column;
+        gap: 10px;
+        padding-left: 15px;
+        border-left: 2px solid #555;
+        margin-top: 10px;
+    }
+    #backgroundOpacitySlider {
+        width: 100%;
+    }
+    .background-opacity-group {
+        margin-top: 10px;
+    }
+    /* Tab styles */
+    .tab-nav {
+      display: flex;
+      border-bottom: 2px solid #007bff;
+      margin-bottom: 20px;
+    }
+    .tab-nav-button {
+      background: #333;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      color: white;
+      font-size: 1em;
+      margin-right: 5px; /* Space between tabs */
+      border-radius: 5px 5px 0 0; /* Rounded top corners */
+      margin-bottom: -2px; /* Overlap with bottom border */
+      border-bottom: 2px solid #333; /* Default non-active state */
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+    .tab-nav-button.active {
+      background: #1e1e1e;
+      border-color: #007bff; /* Highlight for active tab */
+    }
+    .tab-content {
+      display: none; /* Hide all tab content by default */
+    }
+    .tab-content.active {
+      display: block; /* Show active tab content */
+    }
+    /* Styles for new saved text list */
+    #savedTextListContainer {
+        height: 150px;
+        overflow-y: auto;
+        border: 1px solid #555;
+        background: #2a2a2a;
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+    .saved-text-item {
+        display: flex;
+        align-items: center;
+        padding: 5px;
+        border-bottom: 1px solid #444;
+    }
+    .saved-text-item:last-child {
+        border-bottom: none;
+    }
+    .saved-text-item input[type="checkbox"] {
+        margin-right: 10px;
+        width: auto;
+    }
+    .saved-text-item label {
+        cursor: pointer;
+        flex-grow: 1;
+    }
+    .saved-text-item label:hover {
+        color: #007bff;
+    }
+    .saved-text-item label.active-display {
+        color: #00aaff;
+        font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Text Display Controller</h1>
+
+  <div class="tab-nav">
+    <button class="tab-nav-button active" onclick="openTab('textInput')">Text Input</button>
+    <button class="tab-nav-button" onclick="openTab('settings')">Display Settings</button>
+    <button class="tab-nav-button" onclick="openTab('savedTexts')">Saved Texts</button>
+  </div>
+
+  <div id="textInput" class="tab-content active">
+    <div class="text-input-group">
+      <label for="titleMessage">Title Text:</label>
+      <textarea id="titleMessage" rows="1"></textarea>
+
+      <label for="verseMessage">Verse Text:</label>
+      <textarea id="verseMessage" rows="4"></textarea>
+
+      <label for="saveNameInput">Name for current text:</label>
+      <input type="text" id="saveNameInput" placeholder="e.g., Intro Lyrics, Quote 1">
+      <button onclick="saveCurrentText()">Save Current Text</button>
+      
+      <button onclick="sendToDisplay()">Send to Display</button>
+    </div>
+  </div>
+
+  <div id="settings" class="tab-content">
+    <div class="font-controls">
+      <h2>Font Settings</h2>
+      <div class="font-category">
+          <h3>Title Font</h3>
+          <div class="font-sub-group">
+              <label for="titleFontSelect">Font Type:
+                  <select id="titleFontSelect">
+                      <option value="'Segoe UI', sans-serif">Segoe UI (Default)</option>
+                      <option value="Arial, sans-serif">Arial</option>
+                      <option value="Verdana, sans-serif">Verdana</option>
+                      <option value="Georgia, serif">Georgia</option>
+                      <option value="'Times New Roman', serif">Times New Roman</option>
+                      <option value="Courier New, monospace">Courier New</option>
+                      <option value="Impact, sans-serif">Impact</option>
+                      <option value="'Roboto', sans-serif">Roboto</option>
+                      <option value="'Open Sans', sans-serif">Open Sans</option>
+                  </select>
+              </label>
+              <label>Font Size (vw):
+                  <input type="number" id="titleFontSizeInput" value="5" min="1" max="15" step="0.1" />
+              </label>
+              <label>Line Spacing:
+                  <input type="number" id="titleLineSpacingInput" value="1.2" min="0.5" max="3" step="0.1" />
+              </label>
+               <label>Font Color
+                  <input type="color" id="titleFontColor" value="#FFFFFF" />
+              </label>
+          </div>
+          <div class="style-checkbox-group">
+              <label>
+                  <input type="checkbox" id="titleBold"> Bold
+              </label>
+              <label>
+                  <input type="checkbox" id="titleItalic"> Italic
+              </label>
+              <label>
+                  <input type="checkbox" id="titleUnderline"> Underline
+              </label>
+          </div>
+          <div class="outline-controls">
+              <label>Outline Color:
+                  <input type="color" id="titleOutlineColor" value="#000000" />
+              </label>
+              <label>Outline Width (px):
+                  <input type="number" id="titleOutlineWidth" value="0" min="0" max="5" step="0.1" />
+              </label>
+          </div>
+      </div>
+
+      <div class="font-category">
+          <h3>Verse Font</h3>
+          <div class="font-sub-group">
+              <label>Font Type:
+                  <select id="verseFontSelect">
+                      <option value="'Segoe UI', sans-serif">Segoe UI (Default)</option>
+                      <option value="Arial, sans-serif">Arial</option>
+                      <option value="Verdana, sans-serif">Verdana</option>
+                      <option value="Georgia, serif">Georgia</option>
+                      <option value="'Times New Roman', serif">Times New Roman</option>
+                      <option value="Courier New, monospace">Courier New</option>
+                      <option value="Impact, sans-serif">Impact</option>
+                      <option value="'Roboto', sans-serif">Roboto</option>
+                      <option value="'Open Sans', sans-serif">Open Sans</option>
+                  </select>
+              </label>
+              <label>Font Size (vw):
+                  <input type="number" id="verseFontSizeInput" value="4" min="1" max="10" step="0.1" />
+              </label>
+              <label>Line Spacing:
+                  <input type="number" id="verseLineSpacingInput" value="1.2" min="0.5" max="3" step="0.1" />
+              </label>
+              <label>Font Color
+                  <input type="color" id="verseFontColor" value="#FFFFFF" />
+              </label>
+          </div>
+          <div class="style-checkbox-group">
+              <label>
+                  <input type="checkbox" id="verseBold"> Bold
+              </label>
+              <label>
+                  <input type="checkbox" id="verseItalic"> Italic
+              </label>
+              <label>
+                  <input type="checkbox" id="verseUnderline"> Underline
+              </label>
+          </div>
+          <div class="outline-controls">
+              <label>Outline Color:
+                  <input type="color" id="verseOutlineColor" value="#000000" />
+              </label>
+              <label>Outline Width (px):
+                  <input type="number" id="verseOutlineWidth" value="0" min="0" max="5" step="0.1" />
+              </label>
+          </div>
+      </div>
+    </div>
+    <div class="color-group">
+      <h2>Background Settings</h2>
+      <div class="background-type-controls">
+          <label>
+              <input type="radio" name="backgroundType" value="gradient" id="bgTypeGradient" checked> Gradient
+          </label>
+          <label>
+              <input type="radio" name="backgroundType" value="solid" id="bgTypeSolid"> Solid Color
+          </label>
+          <label>
+              <input type="radio" name="backgroundType" value="transparent" id="bgTypeTransparent"> Transparent
+          </label>
+      </div>
+
+      <div id="gradientColors">
+          <h3>Gradient Colors</h3>
+          <label>Top Color
+            <input type="color" id="color1" value="#000000" />
+          </label>
+          <label>Middle Color
+            <input type="color" id="color2" value="#222222" />
+          </label>
+          <label>Bottom Color
+            <input type="color" id="color3" value="#444444" />
+          </label>
+          <h3>Gradient Direction</h3>
+          <label>
+              <input type="radio" name="gradientDirection" value="to bottom" checked> Vertical
+          </label>
+          <label>
+              <input type="radio" name="gradientDirection" value="to bottom right"> Diagonal
+          </label>
+          <label>
+              <input type="radio" name="gradientDirection" value="to right"> Horizontal
+          </label>
+      </div>
+
+      <div id="backgroundColorSettings">
+          <h3>Solid Background Color</h3>
+          <label>Color
+              <input type="color" id="solidBgColor" value="#000000" />
+          </label>
+      </div>
+
+      <div class="background-opacity-group">
+          <label for="backgroundOpacitySlider">Background Opacity: <span id="opacityValue">100%</span></label>
+          <input type="range" id="backgroundOpacitySlider" min="0" max="100" value="100" step="1">
+      </div>
+    </div>
+  </div>
+
+  <div id="savedTexts" class="tab-content">
+    <div class="saved-text-controls">
+      <h2>Saved Text Library</h2>
+      <p style="margin: 0 0 10px 0; font-size: 0.9em; color: #ccc;">Click a name to toggle its visibility. Use checkboxes to delete.</p>
+      <div id="savedTextListContainer">
+        </div>
+      <div class="saved-text-buttons">
+          <button onclick="deleteSelectedTexts()">Delete Selected</button>
+          <button onclick="clearDisplay()">Clear Display</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY_DISPLAY = 'obs_display_text'; // Key for the currently displayed text
+    const STORAGE_KEY_SAVED_LIST = 'obs_saved_texts_list'; // Key for the list of saved text names
+    let savedTexts = {}; // In-memory cache for saved texts
+    
+    // --- State for Toggle Functionality ---
+    let currentlyDisplayedName = null;
+    let isDisplayVisible = false;
+
+
+    // Tab switching function
+    function openTab(tabName) {
+      const tabContents = document.querySelectorAll('.tab-content');
+      tabContents.forEach(content => {
+        content.classList.remove('active');
+      });
+      const tabButtons = document.querySelectorAll('.tab-nav-button');
+      tabButtons.forEach(button => {
+        button.classList.remove('active');
+      });
+      document.getElementById(tabName).classList.add('active');
+      event.currentTarget.classList.add('active');
+    }
+
+    // Helper function to send blank data to the display
+    function sendBlankToDisplay() {
+        const blankData = {
+            title: '',
+            verse: '',
+            background: { type: 'transparent', opacity: 1 }
+        };
+        localStorage.setItem(STORAGE_KEY_DISPLAY, JSON.stringify(blankData));
+    }
+
+
+    // Function to update the opacity value display
+    function updateOpacityValue() {
+        const slider = document.getElementById('backgroundOpacitySlider');
+        const valueSpan = document.getElementById('opacityValue');
+        valueSpan.textContent = `${slider.value}%`;
+    }
+
+    // Function to toggle background settings visibility
+    function toggleBackgroundSettings() {
+        const bgType = document.querySelector('input[name="backgroundType"]:checked').value;
+        document.getElementById('gradientColors').style.display = bgType === 'gradient' ? 'flex' : 'none';
+        document.getElementById('backgroundColorSettings').style.display = bgType === 'solid' ? 'flex' : 'none';
+    }
+
+    // --- Core Display Functions ---
+    function sendToDisplay() {
+      const titleMessage = document.getElementById('titleMessage').value;
+      const verseMessage = document.getElementById('verseMessage').value;
+
+      // Font Properties
+      const titleFont = {
+          type: document.getElementById('titleFontSelect').value,
+          size: document.getElementById('titleFontSizeInput').value,
+          lineSpacing: document.getElementById('titleLineSpacingInput').value,
+          color: document.getElementById('titleFontColor').value,
+          bold: document.getElementById('titleBold').checked,
+          italic: document.getElementById('titleItalic').checked,
+          underline: document.getElementById('titleUnderline').checked,
+          outlineColor: document.getElementById('titleOutlineColor').value,
+          outlineWidth: document.getElementById('titleOutlineWidth').value
+      };
+      const verseFont = {
+          type: document.getElementById('verseFontSelect').value,
+          size: document.getElementById('verseFontSizeInput').value,
+          lineSpacing: document.getElementById('verseLineSpacingInput').value,
+          color: document.getElementById('verseFontColor').value,
+          bold: document.getElementById('verseBold').checked,
+          italic: document.getElementById('verseItalic').checked,
+          underline: document.getElementById('verseUnderline').checked,
+          outlineColor: document.getElementById('verseOutlineColor').value,
+          outlineWidth: document.getElementById('verseOutlineWidth').value
+      };
+
+      // Background Properties
+      const backgroundType = document.querySelector('input[name="backgroundType"]:checked').value;
+      const backgroundOpacity = document.getElementById('backgroundOpacitySlider').value / 100;
+
+      let backgroundData = { type: 'transparent', opacity: backgroundOpacity };
+      if (backgroundType === 'gradient') {
+        backgroundData = {
+          type: 'gradient',
+          colors: [document.getElementById('color1').value, document.getElementById('color2').value, document.getElementById('color3').value],
+          direction: document.querySelector('input[name="gradientDirection"]:checked').value,
+          opacity: backgroundOpacity
+        };
+      } else if (backgroundType === 'solid') {
+        backgroundData = {
+          type: 'solid',
+          color: document.getElementById('solidBgColor').value,
+          opacity: backgroundOpacity
+        };
+      }
+
+      const data = {
+        title: titleMessage,
+        verse: verseMessage,
+        titleFont: titleFont,
+        verseFont: verseFont,
+        background: backgroundData
+      };
+
+      localStorage.setItem(STORAGE_KEY_DISPLAY, JSON.stringify(data));
+      
+      // If manually sending from the text input tab, it breaks the toggle focus
+      currentlyDisplayedName = null; 
+      isDisplayVisible = false;
+      updateActiveItemInList();
+    }
+
+    function clearDisplay() {
+        // This function fully clears the display AND resets the controls
+        sendBlankToDisplay();
+
+        // Reset toggle state
+        currentlyDisplayedName = null;
+        isDisplayVisible = false;
+        updateActiveItemInList();
+
+        // Reset control defaults
+        const defaultTitleFont = { type: "'Segoe UI', sans-serif", size: 5, lineSpacing: 1.2, color: '#FFFFFF', bold: false, italic: false, underline: false, outlineColor: '#000000', outlineWidth: 0 };
+        const defaultVerseFont = { type: "'Segoe UI', sans-serif", size: 4, lineSpacing: 1.2, color: '#FFFFFF', bold: false, italic: false, underline: false, outlineColor: '#000000', outlineWidth: 0 };
+        
+        document.getElementById('titleMessage').value = '';
+        document.getElementById('verseMessage').value = '';
+
+        document.getElementById('titleFontSelect').value = defaultTitleFont.type;
+        document.getElementById('titleFontSizeInput').value = defaultTitleFont.size;
+        document.getElementById('titleLineSpacingInput').value = defaultTitleFont.lineSpacing;
+        document.getElementById('titleFontColor').value = defaultTitleFont.color;
+        document.getElementById('titleBold').checked = defaultTitleFont.bold;
+        document.getElementById('titleItalic').checked = defaultTitleFont.italic;
+        document.getElementById('titleUnderline').checked = defaultTitleFont.underline;
+        document.getElementById('titleOutlineColor').value = defaultTitleFont.outlineColor;
+        document.getElementById('titleOutlineWidth').value = defaultTitleFont.outlineWidth;
+        
+        document.getElementById('verseFontSelect').value = defaultVerseFont.type;
+        document.getElementById('verseFontSizeInput').value = defaultVerseFont.size;
+        document.getElementById('verseLineSpacingInput').value = defaultVerseFont.lineSpacing;
+        document.getElementById('verseFontColor').value = defaultVerseFont.color;
+        document.getElementById('verseBold').checked = defaultVerseFont.bold;
+        document.getElementById('verseItalic').checked = defaultVerseFont.italic;
+        document.getElementById('verseUnderline').checked = defaultVerseFont.underline;
+        document.getElementById('verseOutlineColor').value = defaultVerseFont.outlineColor;
+        document.getElementById('verseOutlineWidth').value = defaultVerseFont.outlineWidth;
+
+        document.getElementById('bgTypeTransparent').checked = true;
+        document.getElementById('backgroundOpacitySlider').value = 100;
+        updateOpacityValue();
+        toggleBackgroundSettings();
+    }
+
+
+    // --- Saved Text Management Functions ---
+    function loadSavedTextsList() {
+        const savedListRaw = localStorage.getItem(STORAGE_KEY_SAVED_LIST);
+        savedTexts = savedListRaw ? JSON.parse(savedListRaw) : {};
+        populateSavedTextList();
+    }
+
+    function updateActiveItemInList() {
+        document.querySelectorAll('.saved-text-item label').forEach(label => {
+            label.classList.remove('active-display');
+        });
+        if (currentlyDisplayedName && isDisplayVisible) {
+            const activeLabel = document.querySelector(`label[for="chk-${currentlyDisplayedName}"]`);
+            if (activeLabel) {
+                activeLabel.classList.add('active-display');
+            }
+        }
+    }
+
+    function populateSavedTextList() {
+        const listContainer = document.getElementById('savedTextListContainer');
+        listContainer.innerHTML = ''; 
+
+        if (Object.keys(savedTexts).length === 0) {
+            listContainer.innerHTML = '<p style="text-align: center; color: #888;">No saved texts</p>';
+            return;
+        }
+
+        const sortedNames = Object.keys(savedTexts).sort((a, b) => a.localeCompare(b, undefined, {sensitivity: 'base'}));
+
+        for (const name of sortedNames) {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'saved-text-item';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = name;
+            checkbox.id = `chk-${name}`;
+
+            const label = document.createElement('label');
+            label.setAttribute('for', `chk-${name}`);
+            label.textContent = name;
+            label.onclick = (event) => {
+                event.preventDefault(); 
+                loadSelectedText(name);
+            };
+
+            itemDiv.appendChild(checkbox);
+            itemDiv.appendChild(label);
+            listContainer.appendChild(itemDiv);
+        }
+        updateActiveItemInList();
+    }
+
+    function saveCurrentText() {
+        const saveNameInput = document.getElementById('saveNameInput');
+        let saveName = saveNameInput.value.trim();
+
+        if (!saveName) {
+            alert('Please enter a name for this text before saving.');
+            return;
+        }
+
+        // Gather all current settings
+        const currentData = {
+            title: document.getElementById('titleMessage').value,
+            verse: document.getElementById('verseMessage').value,
+            titleFont: {
+                type: document.getElementById('titleFontSelect').value,
+                size: document.getElementById('titleFontSizeInput').value,
+                lineSpacing: document.getElementById('titleLineSpacingInput').value,
+                color: document.getElementById('titleFontColor').value,
+                bold: document.getElementById('titleBold').checked,
+                italic: document.getElementById('titleItalic').checked,
+                underline: document.getElementById('titleUnderline').checked,
+                outlineColor: document.getElementById('titleOutlineColor').value,
+                outlineWidth: document.getElementById('titleOutlineWidth').value
+            },
+            verseFont: {
+                type: document.getElementById('verseFontSelect').value,
+                size: document.getElementById('verseFontSizeInput').value,
+                lineSpacing: document.getElementById('verseLineSpacingInput').value,
+                color: document.getElementById('verseFontColor').value,
+                bold: document.getElementById('verseBold').checked,
+                italic: document.getElementById('verseItalic').checked,
+                underline: document.getElementById('verseUnderline').checked,
+                outlineColor: document.getElementById('verseOutlineColor').value,
+                outlineWidth: document.getElementById('verseOutlineWidth').value
+            },
+            background: {
+                type: document.querySelector('input[name="backgroundType"]:checked').value,
+                opacity: document.getElementById('backgroundOpacitySlider').value / 100,
+                colors: [document.getElementById('color1').value, document.getElementById('color2').value, document.getElementById('color3').value],
+                direction: document.querySelector('input[name="gradientDirection"]:checked').value,
+                color: document.getElementById('solidBgColor').value
+            }
+        };
+
+        savedTexts[saveName] = currentData;
+        localStorage.setItem(STORAGE_KEY_SAVED_LIST, JSON.stringify(savedTexts));
+        populateSavedTextList();
+        saveNameInput.value = ''; // Clear save name input
+        alert(`"${saveName}" saved successfully!`);
+    }
+
+    function loadSelectedText(selectedName) {
+        // --- TOGGLE LOGIC ---
+        if (currentlyDisplayedName === selectedName && isDisplayVisible) {
+            // If clicking the same item that is currently visible, hide it.
+            sendBlankToDisplay();
+            isDisplayVisible = false;
+            updateActiveItemInList();
+            return; // Exit the function
+        }
+        
+        if (!selectedName || !savedTexts[selectedName]) {
+            alert('Could not find the selected text to load.');
+            return;
+        }
+
+        const dataToLoad = savedTexts[selectedName];
+
+        // Populate the input fields and settings
+        document.getElementById('titleMessage').value = dataToLoad.title || '';
+        document.getElementById('verseMessage').value = dataToLoad.verse || '';
+
+        // Safely load title font properties
+        if (dataToLoad.titleFont) {
+            document.getElementById('titleFontSelect').value = dataToLoad.titleFont.type || "'Segoe UI', sans-serif";
+            document.getElementById('titleFontSizeInput').value = dataToLoad.titleFont.size || 5;
+            document.getElementById('titleLineSpacingInput').value = dataToLoad.titleFont.lineSpacing || 1.2;
+            document.getElementById('titleFontColor').value = dataToLoad.titleFont.color || '#FFFFFF';
+            document.getElementById('titleBold').checked = dataToLoad.titleFont.bold || false;
+            document.getElementById('titleItalic').checked = dataToLoad.titleFont.italic || false;
+            document.getElementById('titleUnderline').checked = dataToLoad.titleFont.underline || false;
+            document.getElementById('titleOutlineColor').value = dataToLoad.titleFont.outlineColor || '#000000';
+            document.getElementById('titleOutlineWidth').value = dataToLoad.titleFont.outlineWidth || 0;
+        }
+
+        // Safely load verse font properties
+        if (dataToLoad.verseFont) {
+            document.getElementById('verseFontSelect').value = dataToLoad.verseFont.type || "'Segoe UI', sans-serif";
+            document.getElementById('verseFontSizeInput').value = dataToLoad.verseFont.size || 4;
+            document.getElementById('verseLineSpacingInput').value = dataToLoad.verseFont.lineSpacing || 1.2;
+            document.getElementById('verseFontColor').value = dataToLoad.verseFont.color || '#FFFFFF';
+            document.getElementById('verseBold').checked = dataToLoad.verseFont.bold || false;
+            document.getElementById('verseItalic').checked = dataToLoad.verseFont.italic || false;
+            document.getElementById('verseUnderline').checked = dataToLoad.verseFont.underline || false;
+            document.getElementById('verseOutlineColor').value = dataToLoad.verseFont.outlineColor || '#000000';
+            document.getElementById('verseOutlineWidth').value = dataToLoad.verseFont.outlineWidth || 0;
+        }
+
+        // Load Background Properties
+        const bg = dataToLoad.background;
+        if(bg){
+            const loadedBgType = bg.type || 'gradient';
+            document.getElementById(`bgType${loadedBgType.charAt(0).toUpperCase() + loadedBgType.slice(1)}`).checked = true;
+
+            if (loadedBgType === 'gradient' && bg.colors) {
+                document.getElementById('color1').value = bg.colors[0];
+                document.getElementById('color2').value = bg.colors[1];
+                document.getElementById('color3').value = bg.colors[2];
+                document.querySelector(`input[name="gradientDirection"][value="${bg.direction || 'to bottom'}"]`).checked = true;
+            } else if (loadedBgType === 'solid') {
+                document.getElementById('solidBgColor').value = bg.color || '#000000';
+            }
+            document.getElementById('backgroundOpacitySlider').value = (bg.opacity !== undefined ? bg.opacity : 1) * 100;
+        }
+        
+        updateOpacityValue();
+        toggleBackgroundSettings();
+
+        // This function will set the local storage with the new data
+        sendToDisplay(); 
+        
+        // Update the toggle state
+        currentlyDisplayedName = selectedName;
+        isDisplayVisible = true;
+        updateActiveItemInList();
+    }
+
+    function deleteSelectedTexts() {
+        const checkboxes = document.querySelectorAll('#savedTextListContainer input[type="checkbox"]:checked');
+        if (checkboxes.length === 0) {
+            alert('Please select one or more texts to delete.');
+            return;
+        }
+
+        const namesToDelete = Array.from(checkboxes).map(cb => cb.value);
+        if (confirm(`Are you sure you want to delete the following ${namesToDelete.length} item(s)?\n\n- ${namesToDelete.join('\n- ')}`)) {
+            namesToDelete.forEach(name => {
+                // If we are deleting the currently displayed item, reset the toggle state
+                if (name === currentlyDisplayedName) {
+                    currentlyDisplayedName = null;
+                    isDisplayVisible = false;
+                }
+                delete savedTexts[name];
+            });
+            localStorage.setItem(STORAGE_KEY_SAVED_LIST, JSON.stringify(savedTexts));
+            populateSavedTextList();
+            alert(`${namesToDelete.length} item(s) deleted.`);
+        }
+    }
+
+    // --- Initialization ---
+    window.onload = function() {
+      // Event listeners
+      document.querySelectorAll('input[name="backgroundType"]').forEach(radio => radio.addEventListener('change', toggleBackgroundSettings));
+      document.getElementById('backgroundOpacitySlider').addEventListener('input', updateOpacityValue);
+
+      // Load saved texts first
+      loadSavedTextsList();
+
+      // Load current display state (if any) into the controls
+      const rawDisplay = localStorage.getItem(STORAGE_KEY_DISPLAY);
+      if (rawDisplay) {
+        try {
+          const dataToLoad = JSON.parse(rawDisplay);
+          
+          document.getElementById('titleMessage').value = dataToLoad.title || '';
+          document.getElementById('verseMessage').value = dataToLoad.verse || '';
+
+          if (dataToLoad.titleFont) {
+            document.getElementById('titleFontSelect').value = dataToLoad.titleFont.type || "'Segoe UI', sans-serif";
+            document.getElementById('titleFontSizeInput').value = dataToLoad.titleFont.size || 5;
+            document.getElementById('titleLineSpacingInput').value = dataToLoad.titleFont.lineSpacing || 1.2;
+            document.getElementById('titleFontColor').value = dataToLoad.titleFont.color || '#FFFFFF';
+            document.getElementById('titleBold').checked = dataToLoad.titleFont.bold || false;
+            document.getElementById('titleItalic').checked = dataToLoad.titleFont.italic || false;
+            document.getElementById('titleUnderline').checked = dataToLoad.titleFont.underline || false;
+            document.getElementById('titleOutlineColor').value = dataToLoad.titleFont.outlineColor || '#000000';
+            document.getElementById('titleOutlineWidth').value = dataToLoad.titleFont.outlineWidth || 0;
+          }
+
+          if (dataToLoad.verseFont) {
+            document.getElementById('verseFontSelect').value = dataToLoad.verseFont.type || "'Segoe UI', sans-serif";
+            document.getElementById('verseFontSizeInput').value = dataToLoad.verseFont.size || 4;
+            document.getElementById('verseLineSpacingInput').value = dataToLoad.verseFont.lineSpacing || 1.2;
+            document.getElementById('verseFontColor').value = dataToLoad.verseFont.color || '#FFFFFF';
+            document.getElementById('verseBold').checked = dataToLoad.verseFont.bold || false;
+            document.getElementById('verseItalic').checked = dataToLoad.verseFont.italic || false;
+            document.getElementById('verseUnderline').checked = dataToLoad.verseFont.underline || false;
+            document.getElementById('verseOutlineColor').value = dataToLoad.verseFont.outlineColor || '#000000';
+            document.getElementById('verseOutlineWidth').value = dataToLoad.verseFont.outlineWidth || 0;
+          }
+          const bg = dataToLoad.background;
+          if(bg){
+              const loadedBgType = bg.type || 'gradient';
+              document.getElementById(`bgType${loadedBgType.charAt(0).toUpperCase() + loadedBgType.slice(1)}`).checked = true;
+
+              if (loadedBgType === 'gradient' && bg.colors) {
+                  document.getElementById('color1').value = bg.colors[0];
+                  document.getElementById('color2').value = bg.colors[1];
+                  document.getElementById('color3').value = bg.colors[2];
+                  document.querySelector(`input[name="gradientDirection"][value="${bg.direction || 'to bottom'}"]`).checked = true;
+              } else if (loadedBgType === 'solid') {
+                  document.getElementById('solidBgColor').value = bg.color || '#000000';
+              }
+              document.getElementById('backgroundOpacitySlider').value = (bg.opacity !== undefined ? bg.opacity : 1) * 100;
+          }
+
+        } catch (e) {
+          console.error('Error parsing stored display data:', e);
+          clearDisplay();
+        }
+      }
+      // After loading, update the display and toggle settings
+      updateOpacityValue();
+      toggleBackgroundSettings();
+    };
+  </script>
+</body>
+</html>
